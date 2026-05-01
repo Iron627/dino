@@ -265,9 +265,10 @@ class Game:
     def update_dino_action(self, dino):
         outputs = self.dino_outputs(dino)
         action = outputs.index(max(outputs))
-        dino.is_ducking = action == 2 and dino.on_ground
-        if action == 1:
+        was_ducking = dino.is_ducking
+        if action == 1 and not was_ducking:
             dino.jump()
+        dino.is_ducking = action == 2 and dino.on_ground
 
     def update(self):
         if self.game_over:
