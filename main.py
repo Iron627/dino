@@ -1,6 +1,6 @@
 import random
 import sys
-
+import neat
 import pygame
 
 
@@ -18,6 +18,7 @@ RED = (230, 60, 45)
 
 class Dino:
     def __init__(self):
+        self.neuron = neat.NEAT(10,3)
         self.is_ducking = False
         self.rect = pygame.Rect(60, GROUND_Y - 50, 48, 50)
         self.velocity_y = 0
@@ -43,6 +44,49 @@ class Dino:
 
     def draw(self, screen):
         pygame.draw.rect(screen, GREEN, self.rect)
+
+    def get_inputs(self, game):
+        obstacles = sorted(
+            [o for o in (game.cacti + game.pterodactyls) if o.rect.right >= self.rect.left],
+            key=lambda obstacle: obstacle.rect.x,
+        )
+
+        next_obstacle = obstacles[0] if obstacles else None
+        second_obstacle = obstacles[1] if len(obstacles) > 1 else None
+
+        if next_obstacle is None:
+            next_distance = WIDTH
+            next_width = 0
+            next_height = 0
+            next_y = GROUND_Y
+            is_pterodactyl = 0.0
+        else:
+            next_distance = max(0, next_obstacle.rect.x - self.rect.x)
+            next_width = next_obstacle.rect.width
+            next_height = next_obstacle.rect.height
+            next_y = next_obstacle.rect.y
+            is_pterodactyl = 1.0 if isinstance(next_obstacle, Pterodactyl) else 0.0
+
+        if second_obstacle is None:
+            second_distance = WIDTH
+        else:
+            second_distance = max(0, second_obstacle.rect.x - self.rect.x)
+
+        dino_ground_distance = GROUND_Y - self.rect.bottom
+        velocity_y = max(-20, min(20, self.velocity_y))
+
+        return [
+            dino_ground_distance / HEIGHT,
+            velocity_y / 20,
+            1.0 if self.is_ducking else 0.0,
+            min(1.0, next_distance / WIDTH),
+            next_width / WIDTH,
+            next_height / HEIGHT,
+            next_y / HEIGHT,
+            is_pterodactyl,
+            min(1.0, second_distance / WIDTH),
+            min(1.0, game.speed / 20),
+        ]
 
 
 class Cactus:
