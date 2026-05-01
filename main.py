@@ -7,6 +7,8 @@ import pygame
 WIDTH, HEIGHT = 854, 480
 GROUND_Y = 410
 FPS = 60
+PTERODACTYL_START_SCORE = 500
+MIN_OBSTACLE_GAP = 230
 
 BLACK = (0, 0, 0)
 WHITE = (245, 245, 245)
@@ -45,7 +47,7 @@ class Dino:
 
 class Cactus:
     def __init__(self):
-        width = random.choice([22, 34, 46])
+        width = random.choice([22, 44, 66])
         height = random.choice([38, 50, 62])
         self.rect = pygame.Rect(WIDTH, GROUND_Y - height, width, height)
 
@@ -58,7 +60,7 @@ class Pterodactyl(Cactus):
     def __init__(self):
         width = 46
         height = 30
-        y_pos = random.choice([GROUND_Y - 150, GROUND_Y - 80,GROUND_Y - 30])
+        y_pos = GROUND_Y - 60
         self.rect = pygame.Rect(WIDTH, y_pos, width, height)
 
     def draw(self, screen):
@@ -71,12 +73,12 @@ class Game:
     def reset(self):
         self.dino = Dino()
         self.cacti = []
+        self.pterodactyls = []
         self.score = 0
         self.speed = 7
         self.cactus_spawn_timer = 80
         self.pterodactyl_spawn_timer = 120
         self.game_over = False
-        self.pterodactyls = []
 
     def jump_or_restart(self):
         if self.game_over:
@@ -90,14 +92,15 @@ class Game:
 
         self.dino.update()
         self.cactus_spawn_timer -= 1
-        if self.score // 10 > 500:
+
+        if self.display_score() >= PTERODACTYL_START_SCORE:
             self.pterodactyl_spawn_timer -= 1
 
-        if self.cactus_spawn_timer <= 0:
+        if self.cactus_spawn_timer <= 0 and self.has_spawn_gap():
             self.cacti.append(Cactus())
             self.cactus_spawn_timer = random.randint(55, 100)
 
-        if self.pterodactyl_spawn_timer <= 0:
+        if self.pterodactyl_spawn_timer <= 0 and self.has_spawn_gap():
             self.pterodactyls.append(Pterodactyl())
             self.pterodactyl_spawn_timer = random.randint(120, 180)
 
@@ -108,7 +111,7 @@ class Game:
                 self.game_over = True
 
         for pterodactyl in self.pterodactyls:
-            pterodactyl.update(self.speed+4)
+            pterodactyl.update(self.speed + 4)
 
             if self.dino.rect.colliderect(pterodactyl.rect):
                 self.game_over = True
@@ -118,6 +121,17 @@ class Game:
         self.score += 1
         self.speed = 7 + self.score // 600
 
+    def display_score(self):
+        return self.score // 10
+
+    def has_spawn_gap(self):
+        obstacles = self.cacti + self.pterodactyls
+        if not obstacles:
+            return True
+
+        newest_obstacle = max(obstacles, key=lambda obstacle: obstacle.rect.x)
+        return newest_obstacle.rect.x < WIDTH - MIN_OBSTACLE_GAP
+
     def draw(self, screen, font):
         screen.fill(BLACK)
         pygame.draw.line(screen, WHITE, (0, GROUND_Y), (WIDTH, GROUND_Y), 2)
@@ -125,9 +139,11 @@ class Game:
 
         for cactus in self.cacti:
             cactus.draw(screen)
+
         for pterodactyl in self.pterodactyls:
             pterodactyl.draw(screen)
-        draw_text(screen, font, f"Score: {self.score // 10}", 20, 20)
+
+        draw_text(screen, font, f"Score: {self.display_score()}", 20, 20)
 
         if self.game_over:
             draw_text(screen, font, "Game Over - press SPACE", WIDTH // 2 - 160, HEIGHT // 2)
@@ -141,7 +157,7 @@ def draw_text(screen, font, text, x, y):
 def main():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Simple Dino")
+    pygame.display.set_caption("Dino")
     clock = pygame.time.Clock()
     font = pygame.font.Font(None, 36)
 
