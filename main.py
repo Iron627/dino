@@ -24,7 +24,7 @@ class Dino:
         self.on_ground = True
 
     def jump(self):
-        if self.on_ground:
+        if self.on_ground and not self.is_ducking:
             self.velocity_y = -18
             self.on_ground = False
     def update(self):
@@ -98,11 +98,11 @@ class Game:
 
         if self.cactus_spawn_timer <= 0 and self.has_spawn_gap():
             self.cacti.append(Cactus())
-            self.cactus_spawn_timer = random.randint(55, 100)
+            self.cactus_spawn_timer = self.spawn_delay(55, 100)
 
         if self.pterodactyl_spawn_timer <= 0 and self.has_spawn_gap():
             self.pterodactyls.append(Pterodactyl())
-            self.pterodactyl_spawn_timer = random.randint(120, 180)
+            self.pterodactyl_spawn_timer = self.spawn_delay(120, 180)
 
         for cactus in self.cacti:
             cactus.update(self.speed)
@@ -123,6 +123,12 @@ class Game:
 
     def display_score(self):
         return self.score // 10
+
+    def spawn_delay(self, low, high):
+        speed_bonus = (self.speed - 7) * 4
+        low = max(18, low - speed_bonus)
+        high = max(low + 10, high - speed_bonus)
+        return random.randint(low, high)
 
     def has_spawn_gap(self):
         obstacles = self.cacti + self.pterodactyls
